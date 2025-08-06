@@ -1,3 +1,4 @@
+// 🌐 General Data Interfaces
 export interface Project {
   id: string
   title: string
@@ -12,16 +13,17 @@ export interface Project {
   tags?: string[]
   model_card_data?: ModelCard
   demo_iframe_url?: string
+  ai_insights?: AIProjectInsight
 }
 
 export interface ModelCard {
   architecture: string
   dataset: string
   prompt_methods: string
-  evaluation_metrics: Array<{
+  evaluation_metrics: {
     metric: string
     value: string
-  }>
+  }[]
 }
 
 export interface Publication {
@@ -64,4 +66,43 @@ export interface Profile {
   avatar_url?: string
   bio_short: string
   bio_long: string
+}
+
+// 📊 Used in Blog Assistant / Quiz Tool
+export interface QuizCard {
+  question: string
+  options: string[]
+  answer: string
+  explanation?: string
+}
+
+// 🤖 AI-Generated Insights for Projects
+export interface AIProjectInsight {
+  project_id: string
+  summary_ai: string
+  improvements_ai: string
+  comparison_ai: string
+}
+
+// 💬 Chat UI Components
+export interface ChatMessage {
+  role: 'user' | 'assistant' | 'system'
+  content: string
+  avatar_url?: string
+}
+
+export interface ChatResponse {
+  output: string
+  sources?: string[]
+}
+
+// 🔧 ToolType for Blog Assistant
+export type BlogToolType = 'summary' | 'eli5' | 'quiz'
+
+// 🎨 For Avatar Component (optional prop extension)
+export interface AvatarProps {
+  name?: string
+  imageUrl?: string
+  fallback?: string
+  className?: string
 }

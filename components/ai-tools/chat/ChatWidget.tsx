@@ -5,20 +5,24 @@ import { MessageCircle, X, Zap, Heart } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
-
 import { ChatInput } from './ChatInput'
 import { ChatMessage } from './ChatMessage'
 import { TypingIndicator } from './TypingIndicator'
-import type { ChatMessage as MessageType } from '@/lib/types'
+import type { ChatMessage as BaseMessage } from '@/lib/types'
+
+// 🧠 Extend ChatMessage to include timestamp
+interface MessageWithTime extends BaseMessage {
+  timestamp: Date
+}
 
 export function ChatWidget() {
   const [isOpen, setIsOpen] = useState(false)
-  const [messages, setMessages] = useState<MessageType[]>([
+  const [messages, setMessages] = useState<MessageWithTime[]>([
     {
       role: 'assistant',
       content: `Hey there! I'm Swayam's AI twin 🧙‍♂️ Ask me anything about his research, projects, or why he thinks quantum computing is basically magic with extra steps.`,
-      timestamp: new Date()
-    }
+      timestamp: new Date(),
+    },
   ])
   const [mode, setMode] = useState<'calm' | 'brutal'>('calm')
   const [isTyping, setIsTyping] = useState(false)
@@ -29,13 +33,13 @@ export function ChatWidget() {
   }, [messages, isTyping])
 
   const handleSend = async (input: string) => {
-    const userMessage: MessageType = {
+    const userMessage: MessageWithTime = {
       role: 'user',
       content: input,
-      timestamp: new Date()
+      timestamp: new Date(),
     }
 
-    setMessages(prev => [...prev, userMessage])
+    setMessages((prev) => [...prev, userMessage])
     setIsTyping(true)
 
     try {
@@ -45,17 +49,27 @@ export function ChatWidget() {
         body: JSON.stringify({ input, mode }),
       })
 
+      if (!res.ok) throw new Error('Failed to fetch AI response')
+
       const data = await res.json()
 
-      const aiMessage: MessageType = {
+      const aiMessage: MessageWithTime = {
         role: 'assistant',
-        content: data.output,
-        timestamp: new Date()
+        content: data.output || "Hmm... I don't have a response for that yet.",
+        timestamp: new Date(),
       }
 
-      setMessages(prev => [...prev, aiMessage])
+      setMessages((prev) => [...prev, aiMessage])
     } catch (error) {
       console.error('Chat error:', error)
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: '⚠️ Oops! Something went wrong. Try again later.',
+          timestamp: new Date(),
+        },
+      ])
     } finally {
       setIsTyping(false)
     }
@@ -104,15 +118,19 @@ export function ChatWidget() {
       </CardHeader>
 
       <CardContent className="flex-1 flex flex-col p-4 overflow-hidden">
-        <div className="flex-1 overflow-y-auto space-y-4">
-          {messages.map((msg, idx) => (
-            <ChatMessage key={idx} message={msg} />
-          ))}
-          {isTyping && <TypingIndicator />}
-          <div ref={scrollRef} />
-        </div>
-        <ChatInput onSend={handleSend} isDisabled={isTyping} />
-      </CardContent>
+  <div className="flex-1 overflow-y-auto space-y-4 pr-2" aria-live="polite">
+    {messages
+  .filter(msg => msg.role !== 'system')
+  .map((msg, idx) => (
+    <ChatMessage key={idx} message={msg} tone={mode} />
+))}
+
+    {isTyping && <TypingIndicator />}
+    <div ref={scrollRef} className="h-1" />
+  </div>
+  <ChatInput onSend={handleSend} isDisabled={isTyping} />
+     </CardContent>
+
     </Card>
   )
 }
