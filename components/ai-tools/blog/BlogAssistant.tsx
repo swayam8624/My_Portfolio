@@ -118,7 +118,7 @@ export function BlogAssistant({ blogPostContent }: BlogAssistantProps) {
         </div>
 
         {activeTab && (
-          <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as any)}>
+          <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as 'summary' | 'eli5' | 'quiz')}>
             <TabsList className="bg-gray-800 border-gray-700">
               <TabsTrigger value="summary" className="data-[state=active]:bg-gray-700">
                 Summary
