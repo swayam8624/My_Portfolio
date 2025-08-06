@@ -1,29 +1,20 @@
-export interface Profile {
-  id: string
-  username: string
-  full_name: string
-  avatar_url?: string
-  bio_long: string
-  bio_short: string
-}
-
 export interface Project {
   id: string
   title: string
   description_short: string
   description_long: string
-  cover_image_url?: string
+  cover_image_url: string
   project_url?: string
   repo_url?: string
   created_at: string
   project_type: string
   effort_level: string
-  description_embedding?: number[]
+  tags?: string[]
+  model_card_data?: ModelCard
   demo_iframe_url?: string
-  model_card_data?: ModelCardData
 }
 
-export interface ModelCardData {
+export interface ModelCard {
   architecture: string
   dataset: string
   prompt_methods: string
@@ -41,7 +32,6 @@ export interface Publication {
   publication_date: string
   pdf_url?: string
   abstract: string
-  abstract_embedding?: number[]
 }
 
 export interface Experience {
@@ -59,15 +49,6 @@ export interface BlogPost {
   content_markdown: string
   published_at: string
   slug: string
-  content_embedding?: number[]
-  summary_ai?: string
-  eli5_ai?: string
-  quiz_cards_ai?: QuizCard[]
-}
-
-export interface QuizCard {
-  q: string
-  a: string
 }
 
 export interface Skill {
@@ -76,15 +57,11 @@ export interface Skill {
   category: string
 }
 
-export interface AIProjectInsight {
-  project_id: string
-  summary_ai: string
-  improvements_ai: string
-  comparison_ai: string
-}
-
-export interface ChatMessage {
-  role: 'user' | 'assistant'
-  content: string
-  timestamp: Date
+export interface Profile {
+  id: string
+  username: string
+  full_name: string
+  avatar_url?: string
+  bio_short: string
+  bio_long: string
 }
