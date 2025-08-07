@@ -12,7 +12,7 @@ interface ModelCardDisplayProps {
 
 export function ModelCardDisplay({ modelCard }: ModelCardDisplayProps) {
   return (
-    <Card className="bg-gray-900 border border-gray-700 mt-6">
+    <Card className="bg-gray-900 border-gray-700 mt-6">
       <CardHeader>
         <CardTitle className="text-white flex items-center gap-2">
           <Cpu className="h-5 w-5 text-blue-400" />
@@ -22,6 +22,7 @@ export function ModelCardDisplay({ modelCard }: ModelCardDisplayProps) {
           </Badge>
         </CardTitle>
       </CardHeader>
+      
       <CardContent className="space-y-6">
         {/* Architecture */}
         <div className="space-y-2">
@@ -62,15 +63,15 @@ export function ModelCardDisplay({ modelCard }: ModelCardDisplayProps) {
             <BarChart3 className="h-4 w-4 text-gray-400" />
             <span className="text-sm font-medium text-gray-300">Performance Metrics</span>
           </div>
-
+          
           <div className="grid gap-4">
             {modelCard.evaluation_metrics.map((metric, index) => {
-              const numericValue = parseFloat(metric.value.replace('%', ''))
+              const numericValue = parseFloat(metric.value)
               const isPercentage = metric.value.includes('%') || numericValue <= 1
               const displayValue = isPercentage 
                 ? (numericValue <= 1 ? numericValue * 100 : numericValue)
                 : numericValue
-
+              
               return (
                 <div key={index} className="space-y-2">
                   <div className="flex justify-between items-center">
@@ -79,13 +80,15 @@ export function ModelCardDisplay({ modelCard }: ModelCardDisplayProps) {
                       {metric.value}
                     </Badge>
                   </div>
-
-                  {isPercentage ? (
+                  
+                  {isPercentage && (
                     <Progress 
                       value={displayValue} 
                       className="h-2 bg-gray-800"
                     />
-                  ) : (
+                  )}
+                  
+                  {!isPercentage && (
                     <div className="bg-gray-800 p-2 rounded text-center">
                       <span className="text-2xl font-bold text-white">{metric.value}</span>
                     </div>

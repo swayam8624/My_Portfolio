@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Search, Filter, Sparkles, Zap } from 'lucide-react'
+import { Search, Filter, Sparkles, Code, Zap } from 'lucide-react'
 import { Project, Skill } from '@/lib/types'
 
 interface SmartProjectFiltersProps {
@@ -17,8 +17,8 @@ interface SmartProjectFiltersProps {
 
 export function SmartProjectFilters({ projects, skills, onFilteredProjects }: SmartProjectFiltersProps) {
   const [searchQuery, setSearchQuery] = useState('')
-  const [selectedType, setSelectedType] = useState('all')
-  const [selectedEffort, setSelectedEffort] = useState('all')
+  const [selectedType, setSelectedType] = useState<string>('all')
+  const [selectedEffort, setSelectedEffort] = useState<string>('all')
   const [selectedSkills, setSelectedSkills] = useState<string[]>([])
   const [isSemanticSearch, setIsSemanticSearch] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -28,45 +28,46 @@ export function SmartProjectFilters({ projects, skills, onFilteredProjects }: Sm
 
   useEffect(() => {
     filterProjects()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchQuery, selectedType, selectedEffort, selectedSkills, isSemanticSearch])
 
   const filterProjects = async () => {
-    let filtered = [...projects]
+    let filtered = [...projects] // Create a copy to avoid mutations
 
-    // Filter by metadata
-    if (selectedType !== 'all') {
-      filtered = filtered.filter(p => p.project_type.toLowerCase() === selectedType.toLowerCase())
+    // Metadata filtering - fix the logic
+    if (selectedType && selectedType !== 'all') {
+      filtered = filtered.filter(p => p.project_type === selectedType)
     }
 
-    if (selectedEffort !== 'all') {
-      filtered = filtered.filter(p => p.effort_level.toLowerCase() === selectedEffort.toLowerCase())
+    if (selectedEffort && selectedEffort !== 'all') {
+      filtered = filtered.filter(p => p.effort_level === selectedEffort)
     }
 
-    // Filter by selected skills
+    // Skill filtering
     if (selectedSkills.length > 0) {
-      filtered = filtered.filter(p =>
-        selectedSkills.some(skill =>
-          p.title.toLowerCase().includes(skill.toLowerCase()) ||
-          p.description_long.toLowerCase().includes(skill.toLowerCase())
+      filtered = filtered.filter(p => 
+        selectedSkills.some(skill => 
+          p.description_long.toLowerCase().includes(skill.toLowerCase()) ||
+          p.title.toLowerCase().includes(skill.toLowerCase())
         )
       )
     }
 
-    // Apply search (basic or semantic)
+    // Search filtering - apply after metadata filters
     if (searchQuery.trim()) {
       if (isSemanticSearch) {
         setIsLoading(true)
-        await new Promise(resolve => setTimeout(resolve, 800)) // simulate delay
-
-        filtered = filtered
-          .filter(p =>
-            semanticMatch(searchQuery, p.title) ||
-            semanticMatch(searchQuery, p.description_short) ||
-            semanticMatch(searchQuery, p.description_long)
-          )
-          .sort((a, b) => calculateSemanticScore(searchQuery, b) - calculateSemanticScore(searchQuery, a))
-
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        filtered = filtered.filter(p => 
+          semanticMatch(searchQuery, p.description_long) ||
+          semanticMatch(searchQuery, p.title) ||
+          semanticMatch(searchQuery, p.description_short)
+        ).sort((a, b) => {
+          const scoreA = calculateSemanticScore(searchQuery, a)
+          const scoreB = calculateSemanticScore(searchQuery, b)
+          return scoreB - scoreA
+        })
+        
         setIsLoading(false)
       } else {
         const query = searchQuery.toLowerCase()
@@ -83,28 +84,38 @@ export function SmartProjectFilters({ projects, skills, onFilteredProjects }: Sm
     onFilteredProjects(filtered)
   }
 
-  const semanticMatch = (query: string, text: string) => {
-    const q = query.toLowerCase()
-    const t = text.toLowerCase()
-    const synonyms: Record<string, string[]> = {
-      ai: ['artificial', 'intelligence', 'neural', 'ml'],
-      web: ['react', 'next', 'frontend', 'backend'],
-      research: ['paper', 'publication', 'study'],
-      experimental: ['proof', 'concept', 'prototype', 'novel'],
+  const semanticMatch = (query: string, text: string): boolean => {
+    // Simulate semantic matching logic
+    const queryWords = query.toLowerCase().split(' ')
+    const textWords = text.toLowerCase().split(' ')
+    
+    // Check for conceptual matches (simplified)
+    const conceptMap: Record<string, string[]> = {
+      'ai': ['artificial', 'intelligence', 'machine', 'learning', 'neural', 'model'],
+      'web': ['frontend', 'backend', 'react', 'next', 'javascript', 'typescript'],
+      'research': ['paper', 'publication', 'study', 'analysis', 'experiment'],
+      'experimental': ['prototype', 'proof', 'concept', 'novel', 'innovative']
     }
-
-    return q.split(' ').some(word => {
-      const related = synonyms[word] ?? [word]
-      return related.some(s => t.includes(s))
+    
+    return queryWords.some(qWord => {
+      const concepts = conceptMap[qWord] || [qWord]
+      return concepts.some(concept => textWords.includes(concept))
     })
   }
 
-  const calculateSemanticScore = (query: string, p: Project): number => {
-    const text = `${p.title} ${p.description_long}`.toLowerCase()
-    return query
-      .toLowerCase()
-      .split(' ')
-      .reduce((score, word) => score + (text.includes(word) ? 1 : 0), 0)
+  const calculateSemanticScore = (query: string, project: Project): number => {
+    // Simulate semantic similarity scoring
+    const queryWords = query.toLowerCase().split(' ')
+    const projectText = (project.title + ' ' + project.description_long).toLowerCase()
+    
+    let score = 0
+    queryWords.forEach(word => {
+      if (projectText.includes(word)) score += 1
+      // Bonus for title matches
+      if (project.title.toLowerCase().includes(word)) score += 0.5
+    })
+    
+    return score
   }
 
   const clearFilters = () => {
@@ -117,133 +128,129 @@ export function SmartProjectFilters({ projects, skills, onFilteredProjects }: Sm
 
   return (
     <Card className="bg-gray-900 border-gray-700 mb-8">
-      <CardContent className="p-6 space-y-6">
-        {/* Search */}
-        <div className="space-y-2">
-          <div className="flex items-center gap-2 mb-1 text-white font-medium">
-            <Search className="h-5 w-5 text-gray-400" />
-            Search Projects
-          </div>
-
-          <div className="flex gap-2">
-            <div className="flex-1 relative">
-              <Input
-                value={searchQuery}
-                onChange={e => setSearchQuery(e.target.value)}
-                placeholder={
-                  isSemanticSearch
-                    ? 'Try: "experimental AI using PyTorch"'
-                    : 'Search title or description...'
-                }
-                className="bg-gray-800 border-gray-600 text-white placeholder-gray-400 pr-10"
-              />
-              {isLoading && (
-                <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                  <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
-                </div>
-              )}
+      <CardContent className="p-6">
+        <div className="space-y-6">
+          {/* Search Section */}
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-2">
+              <Search className="h-5 w-5 text-gray-400" />
+              <span className="text-white font-medium">Search Projects</span>
             </div>
-            <Button
-              variant={isSemanticSearch ? 'default' : 'outline'}
-              onClick={() => setIsSemanticSearch(prev => !prev)}
-              className={
-                isSemanticSearch
-                  ? 'bg-gradient-to-r from-purple-600 to-blue-600 text-white'
-                  : 'border-gray-600 text-gray-300 hover:bg-gray-800'
-              }
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              AI Search
-            </Button>
+            
+            <div className="flex gap-2">
+              <div className="flex-1 relative">
+                <Input
+                  placeholder={isSemanticSearch ? "Try: 'experimental AI projects using Python'" : "Search by title or description..."}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="bg-gray-800 border-gray-600 text-white placeholder-gray-400 pr-12"
+                />
+                {isLoading && (
+                  <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+                    <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+                  </div>
+                )}
+              </div>
+              
+              <Button
+                variant={isSemanticSearch ? "default" : "outline"}
+                onClick={() => setIsSemanticSearch(!isSemanticSearch)}
+                className={`${
+                  isSemanticSearch 
+                    ? 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700' 
+                    : 'border-gray-600 text-gray-300 hover:bg-gray-800'
+                }`}
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                AI Search
+              </Button>
+            </div>
+            
+            {isSemanticSearch && (
+              <div className="text-sm text-gray-400 flex items-center gap-2">
+                <Zap className="h-4 w-4" />
+                Semantic search enabled - try natural language queries!
+              </div>
+            )}
           </div>
 
-          {isSemanticSearch && (
-            <div className="text-sm text-gray-400 flex items-center gap-2">
-              <Zap className="h-4 w-4" />
-              Semantic search enabled
+          {/* Metadata Filters */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-300">Project Type</label>
+              <Select value={selectedType} onValueChange={setSelectedType}>
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                  <SelectValue placeholder="All types" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600">
+                  <SelectItem value="all">All types</SelectItem>
+                  {projectTypes.map(type => (
+                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-300">Effort Level</label>
+              <Select value={selectedEffort} onValueChange={setSelectedEffort}>
+                <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
+                  <SelectValue placeholder="All levels" />
+                </SelectTrigger>
+                <SelectContent className="bg-gray-800 border-gray-600">
+                  <SelectItem value="all">All levels</SelectItem>
+                  {effortLevels.map(level => (
+                    <SelectItem key={level} value={level}>{level}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-gray-300">Skills</label>
+              <div className="flex flex-wrap gap-2 max-h-20 overflow-y-auto">
+                {skills.slice(0, 10).map(skill => (
+                  <Badge
+                    key={skill.id}
+                    variant={selectedSkills.includes(skill.name) ? "default" : "outline"}
+                    className={`cursor-pointer text-xs ${
+                      selectedSkills.includes(skill.name)
+                        ? 'bg-blue-600 text-white'
+                        : 'border-gray-600 text-gray-300 hover:bg-gray-800'
+                    }`}
+                    onClick={() => {
+                      setSelectedSkills(prev =>
+                        prev.includes(skill.name)
+                          ? prev.filter(s => s !== skill.name)
+                          : [...prev, skill.name]
+                      )
+                    }}
+                  >
+                    {skill.name}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Active Filters & Clear */}
+          {(searchQuery || (selectedType && selectedType !== 'all') || (selectedEffort && selectedEffort !== 'all') || selectedSkills.length > 0) && (
+            <div className="flex items-center justify-between pt-4 border-t border-gray-700">
+              <div className="flex items-center gap-2 text-sm text-gray-400">
+                <Filter className="h-4 w-4" />
+                Active filters applied
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={clearFilters}
+                className="text-gray-400 hover:text-white"
+              >
+                Clear all
+              </Button>
             </div>
           )}
         </div>
-
-        {/* Filters */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {/* Type */}
-          <div className="space-y-2">
-            <label className="text-sm text-gray-300">Project Type</label>
-            <Select value={selectedType} onValueChange={setSelectedType}>
-              <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                <SelectValue placeholder="All types" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-600">
-                <SelectItem value="all">All</SelectItem>
-                {projectTypes.map(type => (
-                  <SelectItem key={type} value={type}>{type}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Effort */}
-          <div className="space-y-2">
-            <label className="text-sm text-gray-300">Effort Level</label>
-            <Select value={selectedEffort} onValueChange={setSelectedEffort}>
-              <SelectTrigger className="bg-gray-800 border-gray-600 text-white">
-                <SelectValue placeholder="All levels" />
-              </SelectTrigger>
-              <SelectContent className="bg-gray-800 border-gray-600">
-                <SelectItem value="all">All</SelectItem>
-                {effortLevels.map(level => (
-                  <SelectItem key={level} value={level}>{level}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Skills */}
-          <div className="space-y-2">
-            <label className="text-sm text-gray-300">Skills</label>
-            <div className="flex flex-wrap gap-2 max-h-20 overflow-y-auto">
-              {skills.slice(0, 10).map(skill => (
-                <Badge
-                  key={skill.id}
-                  onClick={() =>
-                    setSelectedSkills(prev =>
-                      prev.includes(skill.name)
-                        ? prev.filter(s => s !== skill.name)
-                        : [...prev, skill.name]
-                    )
-                  }
-                  variant={selectedSkills.includes(skill.name) ? 'default' : 'outline'}
-                  className={`cursor-pointer text-xs ${
-                    selectedSkills.includes(skill.name)
-                      ? 'bg-blue-600 text-white'
-                      : 'border-gray-600 text-gray-300 hover:bg-gray-800'
-                  }`}
-                >
-                  {skill.name}
-                </Badge>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Active filters */}
-        {(searchQuery || selectedType !== 'all' || selectedEffort !== 'all' || selectedSkills.length > 0) && (
-          <div className="flex items-center justify-between border-t border-gray-700 pt-4">
-            <div className="text-sm text-gray-400 flex items-center gap-2">
-              <Filter className="h-4 w-4" />
-              Active filters applied
-            </div>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={clearFilters}
-              className="text-gray-400 hover:text-white"
-            >
-              Clear all
-            </Button>
-          </div>
-        )}
       </CardContent>
     </Card>
   )
